@@ -18,6 +18,7 @@ import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { RequestWithUser } from '../common/interfaces/request.interface';
 
 @ApiTags('Comments')
 @Controller('hoagies/:hoagieId/comments')
@@ -42,7 +43,7 @@ export class CommentsController {
   async create(
     @Param('hoagieId') hoagieId: string,
     @Body() createCommentDto: CreateCommentDto,
-    @Request() req,
+    @Request() req: RequestWithUser,
   ) {
     return this.commentsService.create(
       hoagieId,

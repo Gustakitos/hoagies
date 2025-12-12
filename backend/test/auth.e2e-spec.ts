@@ -24,7 +24,7 @@ describe('AuthController (e2e)', () => {
   const password = 'Password123!';
 
   it('/api/v1/auth/register (POST)', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as Parameters<typeof request>[0])
       .post('/api/v1/auth/register')
       .send({
         name: 'E2E User',
@@ -44,7 +44,7 @@ describe('AuthController (e2e)', () => {
   });
 
   it('/api/v1/auth/login (POST)', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as Parameters<typeof request>[0])
       .post('/api/v1/auth/login')
       .send({
         email: uniqueEmail,

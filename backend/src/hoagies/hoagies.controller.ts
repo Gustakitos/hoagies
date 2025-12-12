@@ -17,6 +17,7 @@ import { UpdateHoagieDto } from './dto/update-hoagie.dto';
 import { AddCollaboratorDto } from './dto/add-collaborator.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { RequestWithUser } from '../common/interfaces/request.interface';
 
 @ApiTags('Hoagies')
 @Controller('hoagies')
@@ -39,7 +40,10 @@ export class HoagiesController {
   @ApiOperation({ summary: 'Create a new hoagie' })
   @UseGuards(JwtAuthGuard)
   @Post()
-  async create(@Body() createHoagieDto: CreateHoagieDto, @Request() req) {
+  async create(
+    @Body() createHoagieDto: CreateHoagieDto,
+    @Request() req: RequestWithUser,
+  ) {
     return this.hoagiesService.create(createHoagieDto, req.user.userId);
   }
 
@@ -50,7 +54,7 @@ export class HoagiesController {
   async update(
     @Param('id') id: string,
     @Body() updateHoagieDto: UpdateHoagieDto,
-    @Request() req,
+    @Request() req: RequestWithUser,
   ) {
     return this.hoagiesService.update(id, updateHoagieDto, req.user.userId);
   }
@@ -59,7 +63,7 @@ export class HoagiesController {
   @ApiOperation({ summary: 'Delete a hoagie' })
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async delete(@Param('id') id: string, @Request() req) {
+  async delete(@Param('id') id: string, @Request() req: RequestWithUser) {
     return this.hoagiesService.delete(id, req.user.userId);
   }
 
@@ -70,7 +74,7 @@ export class HoagiesController {
   async addCollaborator(
     @Param('id') id: string,
     @Body() addCollaboratorDto: AddCollaboratorDto,
-    @Request() req,
+    @Request() req: RequestWithUser,
   ) {
     return this.hoagiesService.addCollaborator(
       id,
@@ -86,7 +90,7 @@ export class HoagiesController {
   async removeCollaborator(
     @Param('id') id: string,
     @Param('userId') userId: string,
-    @Request() req,
+    @Request() req: RequestWithUser,
   ) {
     return this.hoagiesService.removeCollaborator(id, userId, req.user.userId);
   }

@@ -39,9 +39,9 @@ describe('AuthService', () => {
       ],
     }).compile();
 
-    service = module.get<AuthService>(AuthService);
-    usersService = module.get<UsersService>(UsersService);
-    jwtService = module.get<JwtService>(JwtService);
+    service = await module.resolve<AuthService>(AuthService);
+    usersService = await module.resolve<UsersService>(UsersService);
+    jwtService = await module.resolve<JwtService>(JwtService);
   });
 
   it('should be defined', () => {
@@ -50,15 +50,17 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should register a user and return token', async () => {
+      const createSpy = jest.spyOn(usersService, 'create');
+      const SignSpy = jest.spyOn(jwtService, 'sign');
+
       const result = await service.register({
         name: 'Test',
         email: 'test@example.com',
         password: 'Password123!',
       });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(usersService.create).toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(jwtService.sign).toHaveBeenCalled();
+
+      expect(createSpy).toHaveBeenCalled();
+      expect(SignSpy).toHaveBeenCalled();
       expect(result).toEqual({
         user: {
           id: mockUser._id,

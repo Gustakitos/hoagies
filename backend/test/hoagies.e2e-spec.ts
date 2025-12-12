@@ -37,7 +37,9 @@ describe('HoagiesController (e2e)', () => {
   };
 
   it('should register User A', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/api/v1/auth/register')
       .send(userA)
       .expect(201);
@@ -47,7 +49,9 @@ describe('HoagiesController (e2e)', () => {
   });
 
   it('should register User B', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/api/v1/auth/register')
       .send(userB)
       .expect(201);
@@ -58,7 +62,9 @@ describe('HoagiesController (e2e)', () => {
   });
 
   it('/api/v1/hoagies (POST) - Create Hoagie as User A', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/api/v1/hoagies')
       .set('Authorization', `Bearer ${userAToken}`)
       .send({
@@ -74,7 +80,7 @@ describe('HoagiesController (e2e)', () => {
   });
 
   it('/api/v1/hoagies/:id (PUT) - User B should NOT be able to update', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as Parameters<typeof request>[0])
       .put(`/api/v1/hoagies/${hoagieId}`)
       .set('Authorization', `Bearer ${userBToken}`)
       .send({ name: 'Hacked Hoagie' })
@@ -82,7 +88,7 @@ describe('HoagiesController (e2e)', () => {
   });
 
   it('/api/v1/hoagies/:id/collaborators (POST) - Add User B as collaborator', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as Parameters<typeof request>[0])
       .post(`/api/v1/hoagies/${hoagieId}/collaborators`)
       .set('Authorization', `Bearer ${userAToken}`)
       .send({ userId: userBId })
@@ -90,7 +96,7 @@ describe('HoagiesController (e2e)', () => {
   });
 
   it('/api/v1/hoagies/:id (PUT) - User B SHOULD be able to update now', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as Parameters<typeof request>[0])
       .put(`/api/v1/hoagies/${hoagieId}`)
       .set('Authorization', `Bearer ${userBToken}`)
       .send({ name: 'Collaborative Hoagie' })
@@ -98,14 +104,14 @@ describe('HoagiesController (e2e)', () => {
   });
 
   it('/api/v1/hoagies/:id/collaborators/:userId (DELETE) - Remove User B', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as Parameters<typeof request>[0])
       .delete(`/api/v1/hoagies/${hoagieId}/collaborators/${userBId}`)
       .set('Authorization', `Bearer ${userAToken}`)
       .expect(200);
   });
 
   it('/api/v1/hoagies/:id (DELETE) - User A deletes Hoagie', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as Parameters<typeof request>[0])
       .delete(`/api/v1/hoagies/${hoagieId}`)
       .set('Authorization', `Bearer ${userAToken}`)
       .expect(200);
