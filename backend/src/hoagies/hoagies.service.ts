@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Hoagie, HoagieDocument } from './schemas/hoagie.schema';
@@ -11,7 +15,7 @@ import { PaginatedResponse } from '../common/interfaces/paginated-response.inter
 export class HoagiesService {
   constructor(
     @InjectModel(Hoagie.name) private hoagieModel: Model<HoagieDocument>,
-  ) { }
+  ) {}
 
   async create(createHoagieDto: CreateHoagieDto, userId: string): Promise<any> {
     const hoagie = new this.hoagieModel({
@@ -186,7 +190,11 @@ export class HoagiesService {
     };
   }
 
-  async update(id: string, updateHoagieDto: UpdateHoagieDto, userId: string): Promise<any> {
+  async update(
+    id: string,
+    updateHoagieDto: UpdateHoagieDto,
+    userId: string,
+  ): Promise<any> {
     const hoagie = await this.hoagieModel.findById(id);
 
     if (!hoagie) {
@@ -199,7 +207,9 @@ export class HoagiesService {
     );
 
     if (!isOwner && !isCollaborator) {
-      throw new ForbiddenException('You are not authorized to update this hoagie');
+      throw new ForbiddenException(
+        'You are not authorized to update this hoagie',
+      );
     }
 
     Object.assign(hoagie, updateHoagieDto);
@@ -216,7 +226,9 @@ export class HoagiesService {
     }
 
     if (hoagie.creator.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to delete this hoagie');
+      throw new ForbiddenException(
+        'You are not authorized to delete this hoagie',
+      );
     }
 
     await this.hoagieModel.findByIdAndDelete(id);
@@ -224,7 +236,11 @@ export class HoagiesService {
     return { message: 'Hoagie deleted successfully' };
   }
 
-  async addCollaborator(hoagieId: string, userId: string, requestUserId: string): Promise<any> {
+  async addCollaborator(
+    hoagieId: string,
+    userId: string,
+    requestUserId: string,
+  ): Promise<any> {
     const hoagie = await this.hoagieModel.findById(hoagieId);
 
     if (!hoagie) {
@@ -246,7 +262,11 @@ export class HoagiesService {
     return this.findById(hoagieId);
   }
 
-  async removeCollaborator(hoagieId: string, userId: string, requestUserId: string): Promise<{ message: string }> {
+  async removeCollaborator(
+    hoagieId: string,
+    userId: string,
+    requestUserId: string,
+  ): Promise<{ message: string }> {
     const hoagie = await this.hoagieModel.findById(hoagieId);
 
     if (!hoagie) {
@@ -265,9 +285,10 @@ export class HoagiesService {
       throw new NotFoundException('Collaborator not found');
     }
 
-    hoagie.collaborators = (hoagie.collaborators as Types.ObjectId[])?.filter(
-      (id) => id.toString() !== userId,
-    ) || [];
+    hoagie.collaborators =
+      (hoagie.collaborators as Types.ObjectId[])?.filter(
+        (id) => id.toString() !== userId,
+      ) || [];
 
     await hoagie.save();
 

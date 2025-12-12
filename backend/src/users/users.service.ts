@@ -45,18 +45,6 @@ export class UsersService {
     return user;
   }
 
-  async search(query: string, limit: number = 10): Promise<UserDocument[]> {
-    return this.userModel
-      .find({
-        $or: [
-          { name: { $regex: query, $options: 'i' } },
-          { email: { $regex: query, $options: 'i' } },
-        ],
-      })
-      .select('-password')
-      .limit(limit);
-  }
-
   async validatePassword(
     plainPassword: string,
     hashedPassword: string,

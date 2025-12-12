@@ -12,4 +12,4 @@ import { Hoagie, HoagieSchema } from './schemas/hoagie.schema';
   providers: [HoagiesService],
   exports: [HoagiesService],
 })
-export class HoagiesModule { }
+export class HoagiesModule {}

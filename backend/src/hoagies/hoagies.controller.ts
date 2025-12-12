@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { HoagiesService } from './hoagies.service';
 import { CreateHoagieDto } from './dto/create-hoagie.dto';
@@ -10,7 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiTags('Hoagies')
 @Controller('hoagies')
 export class HoagiesController {
-  constructor(private hoagiesService: HoagiesService) { }
+  constructor(private hoagiesService: HoagiesService) {}
 
   @ApiOperation({ summary: 'Get all hoagies' })
   @Get()
@@ -61,7 +72,11 @@ export class HoagiesController {
     @Body() addCollaboratorDto: AddCollaboratorDto,
     @Request() req,
   ) {
-    return this.hoagiesService.addCollaborator(id, addCollaboratorDto.userId, req.user.userId);
+    return this.hoagiesService.addCollaborator(
+      id,
+      addCollaboratorDto.userId,
+      req.user.userId,
+    );
   }
 
   @ApiBearerAuth()
