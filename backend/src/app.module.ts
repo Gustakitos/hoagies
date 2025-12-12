@@ -10,13 +10,11 @@ import { UsersModule } from './users/users.module';
       envFilePath: '.env',
       isGlobal: true,
     }),
-    MongooseModule.forRoot(
-      process.env.MONGODB_URL!
-    ),
+    MongooseModule.forRoot(process.env.MONGODB_URL!),
     AuthModule,
     UsersModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}
