@@ -17,11 +17,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     container_name: hoagie-hub-backend
     env_file:
       - .env
     ports:
       - '3009:3000'
+    volumes:
+      - .:/app
+      - /app/node_modules
     depends_on:
       - mongodb
     networks:
