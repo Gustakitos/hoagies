@@ -3,13 +3,14 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
+import { UserDocument } from '../users/schema/user.schema';
 
 const mockUser = {
   _id: 'someId',
   email: 'test@example.com',
   name: 'Test User',
   password: 'hashedPassword',
-};
+} as unknown as UserDocument;
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -71,9 +72,7 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should return token for valid user', async () => {
-      jest
-        .spyOn(usersService, 'findByEmail')
-        .mockResolvedValue(mockUser as any);
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser);
       jest.spyOn(usersService, 'validatePassword').mockResolvedValue(true);
 
       const result = await service.login({
