@@ -2,6 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { getModelToken } from '@nestjs/mongoose';
+import { Hoagie } from '../src/hoagies/schemas/hoagie.schema';
+import { User } from '../src/users/schema/user.schema';
+import { Comment } from '../src/comments/schemas/comment.schema';
+import { Model } from 'mongoose';
 
 describe('HoagiesController (e2e)', () => {
   let app: INestApplication;
@@ -9,9 +14,10 @@ describe('HoagiesController (e2e)', () => {
   let userBToken: string;
   let userBId: string;
   let hoagieId: string;
+  let moduleFixture: TestingModule;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
@@ -21,6 +27,24 @@ describe('HoagiesController (e2e)', () => {
   });
 
   afterAll(async () => {
+    const hoagieModel = moduleFixture.get<Model<Hoagie>>(
+      getModelToken(Hoagie.name),
+    );
+    const userModel = moduleFixture.get<Model<User>>(getModelToken(User.name));
+    const commentModel = moduleFixture.get<Model<Comment>>(
+      getModelToken(Comment.name),
+    );
+
+    if (hoagieId) {
+      await hoagieModel.deleteOne({ _id: hoagieId });
+    }
+    const usersToDelete = [userA.email, userB.email];
+    await userModel.deleteMany({ email: { $in: usersToDelete } });
+
+    if (hoagieId) {
+      await commentModel.deleteMany({ hoagie: hoagieId });
+    }
+
     await app.close();
   });
 
@@ -91,7 +115,7 @@ describe('HoagiesController (e2e)', () => {
     return request(app.getHttpServer() as Parameters<typeof request>[0])
       .post(`/api/v1/hoagies/${hoagieId}/collaborators`)
       .set('Authorization', `Bearer ${userAToken}`)
-      .send({ userId: userBId })
+      .send({ email: userB.email })
       .expect(201);
   });
 

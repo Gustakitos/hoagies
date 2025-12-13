@@ -16,11 +16,13 @@ import {
   HoagieListItem,
   HoagieResponse,
 } from 'src/common/interfaces/hoagies.interface';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class HoagiesService {
   constructor(
     @InjectModel(Hoagie.name) private hoagieModel: Model<HoagieDocument>,
+    private usersService: UsersService,
   ) {}
 
   async create(
@@ -272,7 +274,7 @@ export class HoagiesService {
 
   async addCollaborator(
     hoagieId: string,
-    userId: string,
+    email: string,
     requestUserId: string,
   ): Promise<HoagieResponse> {
     const hoagie = await this.hoagieModel.findById(hoagieId);
@@ -285,12 +287,23 @@ export class HoagiesService {
       throw new ForbiddenException('Only the creator can add collaborators');
     }
 
+    const userToAdd = await this.usersService.findByEmail(email);
+    if (!userToAdd) {
+      throw new NotFoundException('User with this email not found');
+    }
+
+    const userId = userToAdd._id.toString();
+
     if (
       hoagie.collaborators?.some(
         (id) => (id as Types.ObjectId).toString() === userId,
       )
     ) {
       throw new ForbiddenException('User is already a collaborator');
+    }
+
+    if ((hoagie.creator as Types.ObjectId).toString() === userId) {
+      throw new ForbiddenException('Creator cannot be a collaborator');
     }
 
     hoagie.collaborators = hoagie.collaborators || [];

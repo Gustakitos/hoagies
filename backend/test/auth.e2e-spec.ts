@@ -2,12 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { Model } from 'mongoose';
+import { getModelToken } from '@nestjs/mongoose';
+import { User } from '../src/users/schema/user.schema';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
+  let moduleFixture: TestingModule;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
@@ -17,6 +21,9 @@ describe('AuthController (e2e)', () => {
   });
 
   afterAll(async () => {
+    const userModel = moduleFixture.get<Model<User>>(getModelToken(User.name));
+
+    await userModel.deleteOne({ email: uniqueEmail });
     await app.close();
   });
 

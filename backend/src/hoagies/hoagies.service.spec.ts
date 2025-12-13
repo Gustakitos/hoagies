@@ -2,8 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HoagiesService } from './hoagies.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Hoagie } from './schemas/hoagie.schema';
+import { UsersService } from '../users/users.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
+import { UserDocument } from '../users/schema/user.schema';
 
 const mockUserId = new Types.ObjectId();
 const mockHoagieId = new Types.ObjectId();
@@ -46,6 +48,7 @@ const mockAggregateResult = [
 describe('HoagiesService', () => {
   let service: HoagiesService;
   let model: Model<Hoagie>;
+  let module: TestingModule;
 
   class MockHoagieModel {
     save: jest.Mock;
@@ -65,12 +68,18 @@ describe('HoagiesService', () => {
   }
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         HoagiesService,
         {
           provide: getModelToken(Hoagie.name),
           useValue: MockHoagieModel,
+        },
+        {
+          provide: UsersService,
+          useValue: {
+            findByEmail: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -223,18 +232,27 @@ describe('HoagiesService', () => {
   describe('addCollaborator', () => {
     it('should add collaborator if owner', async () => {
       const newCollabId = new Types.ObjectId();
+      const newCollabEmail = 'collab@test.com';
       const saveMock = jest.fn();
+
       (model.findById as jest.Mock).mockResolvedValue({
         ...mockHoagie,
         creator: mockUserId,
         collaborators: [],
         save: saveMock,
       });
+
+      const usersService = module.get<UsersService>(UsersService);
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue({
+        _id: newCollabId,
+        email: newCollabEmail,
+      } as UserDocument);
+
       jest.spyOn(service, 'findById').mockResolvedValue(mockAggregateResult[0]);
 
       await service.addCollaborator(
         mockHoagieId.toString(),
-        newCollabId.toString(),
+        newCollabEmail,
         mockUserId.toString(),
       );
 
@@ -246,7 +264,7 @@ describe('HoagiesService', () => {
       await expect(
         service.addCollaborator(
           mockHoagieId.toString(),
-          'userId',
+          'email@test.com',
           mockUserId.toString(),
         ),
       ).rejects.toThrow(NotFoundException);
@@ -260,7 +278,7 @@ describe('HoagiesService', () => {
       await expect(
         service.addCollaborator(
           mockHoagieId.toString(),
-          'userId',
+          'email@test.com',
           mockUserId.toString(),
         ),
       ).rejects.toThrow(ForbiddenException);
@@ -268,15 +286,24 @@ describe('HoagiesService', () => {
 
     it('should throw ForbiddenException if already collaborator', async () => {
       const collabId = new Types.ObjectId();
+      const email = 'collab@test.com';
+
       (model.findById as jest.Mock).mockResolvedValue({
         ...mockHoagie,
         creator: mockUserId,
         collaborators: [collabId],
       });
+
+      const usersService = module.get<UsersService>(UsersService);
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue({
+        _id: collabId,
+        email,
+      } as UserDocument);
+
       await expect(
         service.addCollaborator(
           mockHoagieId.toString(),
-          collabId.toString(),
+          email,
           mockUserId.toString(),
         ),
       ).rejects.toThrow(ForbiddenException);

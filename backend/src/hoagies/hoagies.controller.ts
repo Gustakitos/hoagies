@@ -78,7 +78,7 @@ export class HoagiesController {
   ) {
     return this.hoagiesService.addCollaborator(
       id,
-      addCollaboratorDto.userId,
+      addCollaboratorDto.email,
       req.user.userId,
     );
   }
