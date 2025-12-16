@@ -1,10 +1,10 @@
-name: Backend CI
+name: CI
 
 on:
   - pull_request
 
 jobs:
-  build:
+  backend:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -19,32 +19,29 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: root
           MONGO_INITDB_ROOT_PASSWORD: examplepassword
 
-    strategy:
-      matrix:
-        node-version: [22.x]
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: "22.x"
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Unit Tests
-        run: npm run test
-
-      - name: E2E Tests
-        env:
-          MONGODB_URL: mongodb://root:examplepassword@localhost:27017/hoagie-hub?authSource=admin
-          JWT_SECRET: test_secret
-          JWT_EXPIRES_IN: 1d
-        run: npm run test:e2e
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22.x"
+      - run: yarn ci
+      - run: yarn lint
+      - run: yarn test
