@@ -18,7 +18,9 @@ jobs:
         env:
           MONGO_INITDB_ROOT_USERNAME: root
           MONGO_INITDB_ROOT_PASSWORD: examplepassword
-          MONGODB_URL: mongodb://root:examplepassword@localhost:27017/test
+
+    env:
+      MONGODB_URL: mongodb://root:examplepassword@localhost:27017/test
 
     steps:
       - uses: actions/checkout@v3
