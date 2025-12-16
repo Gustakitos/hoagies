@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   RefreshControl,
@@ -21,6 +20,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { ThemeColors } from '../../constants/colors';
 import { getErrorMessage } from '../../utils/errors';
 import { toast } from 'sonner-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HoagieDetail'>;
 
@@ -156,8 +156,9 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        alwaysBounceVertical={true}
+      <KeyboardAwareScrollView
+        alwaysBounceVertical
+        bottomOffset={20}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -292,7 +293,7 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
             </Text>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
