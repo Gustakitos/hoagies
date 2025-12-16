@@ -48,5 +48,6 @@ jobs:
           node-version: "22.x"
           cache: "yarn"
           cache-dependency-path: frontend/yarn.lock
+      - run: yarn install --frozen-lockfile
       - run: yarn lint
       - run: yarn test
