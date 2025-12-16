@@ -18,8 +18,8 @@ export class Hoagie {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   creator: Types.ObjectId | User;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] })
-  collaborators?: Types.ObjectId[] | User[];
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  collaborators: Types.ObjectId[];
 }
 
 export const HoagieSchema = SchemaFactory.createForClass(Hoagie);

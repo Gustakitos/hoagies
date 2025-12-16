@@ -33,8 +33,18 @@ export class UsersService {
     return user.save();
   }
 
-  async findByEmail(email: string): Promise<UserDocument | null> {
+  async findOneByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email });
+  }
+
+  async searchByEmail(email: string): Promise<UserDocument[]> {
+    return this.userModel
+      .find({
+        email: { $regex: email, $options: 'i' },
+      })
+      .select('name email _id')
+      .limit(10)
+      .exec();
   }
 
   async findById(id: string): Promise<UserDocument> {

@@ -78,7 +78,7 @@ describe('HoagiesService', () => {
         {
           provide: UsersService,
           useValue: {
-            findByEmail: jest.fn(),
+            findOneByEmail: jest.fn(),
           },
         },
       ],
@@ -116,6 +116,7 @@ describe('HoagiesService', () => {
           pictureUrl: '',
           creator: { id: mockUserId, name: 'C' },
           commentCount: 0,
+          collaboratorCount: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -222,6 +223,7 @@ describe('HoagiesService', () => {
       (model.findById as jest.Mock).mockResolvedValue({
         ...mockHoagie,
         creator: new Types.ObjectId(),
+        collaborators: [],
       });
       await expect(
         service.delete(mockHoagieId.toString(), mockUserId.toString()),
@@ -243,7 +245,7 @@ describe('HoagiesService', () => {
       });
 
       const usersService = module.get<UsersService>(UsersService);
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue({
+      jest.spyOn(usersService, 'findOneByEmail').mockResolvedValue({
         _id: newCollabId,
         email: newCollabEmail,
       } as UserDocument);
@@ -287,18 +289,22 @@ describe('HoagiesService', () => {
     it('should throw ForbiddenException if already collaborator', async () => {
       const collabId = new Types.ObjectId();
       const email = 'collab@test.com';
+      const saveMock = jest.fn();
 
       (model.findById as jest.Mock).mockResolvedValue({
         ...mockHoagie,
         creator: mockUserId,
         collaborators: [collabId],
+        save: saveMock,
       });
 
       const usersService = module.get<UsersService>(UsersService);
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue({
+      jest.spyOn(usersService, 'findOneByEmail').mockResolvedValue({
         _id: collabId,
         email,
       } as UserDocument);
+
+      jest.spyOn(service, 'findById').mockResolvedValue(mockAggregateResult[0]);
 
       await expect(
         service.addCollaborator(

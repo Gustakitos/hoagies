@@ -11,19 +11,20 @@ import { UpdateHoagieDto } from './dto/update-hoagie.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/interfaces/paginated-response.interface';
 import {
-  HoagieCollaborator,
-  HoagieCreator,
+  AggregateHoagie,
+  AggregateHoagieDetail,
   HoagieListItem,
   HoagieResponse,
 } from 'src/common/interfaces/hoagies.interface';
 import { UsersService } from '../users/users.service';
+import { isCollaborator, isValidCollaborator } from './util/hoagie.util';
 
 @Injectable()
 export class HoagiesService {
   constructor(
     @InjectModel(Hoagie.name) private hoagieModel: Model<HoagieDocument>,
     private usersService: UsersService,
-  ) {}
+  ) { }
 
   async create(
     createHoagieDto: CreateHoagieDto,
@@ -44,17 +45,6 @@ export class HoagiesService {
   ): Promise<PaginatedResponse<HoagieListItem>> {
     const { page = 1, limit = 10 } = paginationDto;
     const skip = (page - 1) * limit;
-
-    interface AggregateHoagie {
-      _id: Types.ObjectId;
-      name: string;
-      ingredients: string[];
-      pictureUrl?: string;
-      creator: HoagieCreator;
-      commentCount: number;
-      createdAt: Date;
-      updatedAt: Date;
-    }
 
     const [data, total] = await Promise.all([
       this.hoagieModel.aggregate<AggregateHoagie>([
@@ -85,6 +75,7 @@ export class HoagiesService {
             createdAt: 1,
             updatedAt: 1,
             commentCount: { $size: '$comments' },
+            collaboratorCount: { $size: { $ifNull: ['$collaborators', []] } },
             creator: {
               id: '$creatorData._id',
               name: '$creatorData.name',
@@ -108,6 +99,7 @@ export class HoagiesService {
         name: hoagie.creator.name,
       },
       commentCount: hoagie.commentCount,
+      collaboratorCount: hoagie.collaboratorCount,
       createdAt: hoagie.createdAt,
       updatedAt: hoagie.updatedAt,
     }));
@@ -132,18 +124,6 @@ export class HoagiesService {
       throw new NotFoundException('Hoagie not found');
     }
 
-    interface AggregateHoagieDetail {
-      _id: Types.ObjectId;
-      name: string;
-      ingredients: string[];
-      pictureUrl?: string;
-      creator: HoagieCreator;
-      collaborators: HoagieCollaborator[];
-      commentCount: number;
-      createdAt: Date;
-      updatedAt: Date;
-    }
-
     const result = await this.hoagieModel.aggregate<AggregateHoagieDetail>([
       { $match: { _id: new Types.ObjectId(id) } },
       {
@@ -152,6 +132,7 @@ export class HoagiesService {
           localField: '_id',
           foreignField: 'hoagie',
           as: 'comments',
+          pipeline: [{ $project: { _id: 1 } }, { $limit: 1000 }],
         },
       },
       {
@@ -160,6 +141,7 @@ export class HoagiesService {
           localField: 'creator',
           foreignField: '_id',
           as: 'creatorData',
+          pipeline: [{ $project: { _id: 1, name: 1, email: 1 } }],
         },
       },
       {
@@ -168,6 +150,7 @@ export class HoagiesService {
           localField: 'collaborators',
           foreignField: '_id',
           as: 'collaboratorsData',
+          pipeline: [{ $project: { _id: 1, name: 1 } }],
         },
       },
       {
@@ -188,11 +171,11 @@ export class HoagiesService {
           },
           collaborators: {
             $map: {
-              input: '$collaboratorsData',
-              as: 'collab',
+              input: { $ifNull: ['$collaboratorsData', []] },
+              as: 'collaborator',
               in: {
-                id: '$$collab._id',
-                name: '$$collab.name',
+                id: '$$collaborator._id',
+                name: '$$collaborator.name',
               },
             },
           },
@@ -216,11 +199,13 @@ export class HoagiesService {
         name: hoagie.creator.name,
         email: hoagie.creator.email,
       },
-      collaborators: hoagie.collaborators.map((c) => ({
-        id: c.id.toString(),
-        name: c.name,
-      })),
+      collaborators:
+        hoagie.collaborators.filter(isValidCollaborator).map((c) => ({
+          id: c.id.toString(),
+          name: c.name,
+        })) || [],
       commentCount: hoagie.commentCount,
+      collaboratorCount: hoagie.collaborators?.length || 0,
       createdAt: hoagie.createdAt,
       updatedAt: hoagie.updatedAt,
     };
@@ -238,11 +223,8 @@ export class HoagiesService {
     }
 
     const isOwner = (hoagie.creator as Types.ObjectId).toString() === userId;
-    const isCollaborator = hoagie.collaborators?.some(
-      (collaborator) => (collaborator as Types.ObjectId).toString() === userId,
-    );
 
-    if (!isOwner && !isCollaborator) {
+    if (!isOwner && !isCollaborator(hoagie, userId)) {
       throw new ForbiddenException(
         'You are not authorized to update this hoagie',
       );
@@ -287,18 +269,15 @@ export class HoagiesService {
       throw new ForbiddenException('Only the creator can add collaborators');
     }
 
-    const userToAdd = await this.usersService.findByEmail(email);
+    const userToAdd = await this.usersService.findOneByEmail(email);
+
     if (!userToAdd) {
       throw new NotFoundException('User with this email not found');
     }
 
     const userId = userToAdd._id.toString();
 
-    if (
-      hoagie.collaborators?.some(
-        (id) => (id as Types.ObjectId).toString() === userId,
-      )
-    ) {
+    if (isCollaborator(hoagie, userId)) {
       throw new ForbiddenException('User is already a collaborator');
     }
 
@@ -307,7 +286,8 @@ export class HoagiesService {
     }
 
     hoagie.collaborators = hoagie.collaborators || [];
-    (hoagie.collaborators as Types.ObjectId[]).push(new Types.ObjectId(userId));
+    hoagie.collaborators.push(new Types.ObjectId(userId));
+
     await hoagie.save();
 
     return this.findById(hoagieId);
@@ -328,17 +308,13 @@ export class HoagiesService {
       throw new ForbiddenException('Only the creator can remove collaborators');
     }
 
-    const isCollaborator = hoagie.collaborators?.some(
-      (id) => (id as Types.ObjectId).toString() === userId,
-    );
-
-    if (!isCollaborator) {
+    if (!isCollaborator(hoagie, userId)) {
       throw new NotFoundException('Collaborator not found');
     }
 
     hoagie.collaborators =
-      (hoagie.collaborators as Types.ObjectId[])?.filter(
-        (id) => id.toString() !== userId,
+      hoagie.collaborators?.filter(
+        (collaboratorId) => collaboratorId.toString() !== userId,
       ) || [];
 
     await hoagie.save();

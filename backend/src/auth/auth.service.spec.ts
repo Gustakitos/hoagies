@@ -25,7 +25,7 @@ describe('AuthService', () => {
           provide: UsersService,
           useValue: {
             create: jest.fn().mockResolvedValue(mockUser),
-            findByEmail: jest.fn(),
+            findOneByEmail: jest.fn(),
             validatePassword: jest.fn(),
             findById: jest.fn().mockResolvedValue(mockUser),
           },
@@ -74,7 +74,7 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should return token for valid user', async () => {
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser);
+      jest.spyOn(usersService, 'findOneByEmail').mockResolvedValue(mockUser);
       jest.spyOn(usersService, 'validatePassword').mockResolvedValue(true);
 
       const result = await service.login({
@@ -85,7 +85,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for invalid user', async () => {
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
+      jest.spyOn(usersService, 'findOneByEmail').mockResolvedValue(null);
       await expect(
         service.login({ email: 'test@example.com', password: 'password' }),
       ).rejects.toThrow(UnauthorizedException);
