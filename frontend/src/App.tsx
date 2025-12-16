@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import {
   NavigationContainer,
   DefaultTheme,
@@ -23,9 +24,11 @@ import CreateHoagieScreen from './screens/hoagies/CreateHoagieScreen';
 import EditHoagieScreen from './screens/hoagies/EditHoagieScreen';
 import AddCollaboratorScreen from './screens/hoagies/AddCollaboratorScreen';
 import ProfileScreen from './screens/profile/ProfileScreen';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+} from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
 import { Toaster } from 'sonner-native';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -151,13 +154,23 @@ const Navigation = () => {
 };
 
 export default function App() {
+  const isAndroid15 = Platform.OS === 'android' && Platform.Version >= 35;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <KeyboardProvider>
           <ThemeProvider>
             <AuthProvider>
-              <Navigation />
+              <SafeAreaProvider
+                style={
+                  isAndroid15
+                    ? { marginBottom: initialWindowMetrics?.insets.bottom }
+                    : {}
+                }
+              >
+                <Navigation />
+              </SafeAreaProvider>
               <Toaster />
             </AuthProvider>
           </ThemeProvider>
