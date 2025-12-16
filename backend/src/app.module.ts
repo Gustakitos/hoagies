@@ -18,7 +18,7 @@ import { CommentsModule } from './comments/comments.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 10,
+        limit: 50,
       },
     ]),
     AuthModule,
@@ -34,4 +34,4 @@ import { CommentsModule } from './comments/comments.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
