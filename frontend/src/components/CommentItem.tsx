@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Comment } from '../types/hoagie.types';
 import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/colors';
 
 interface CommentItemProps {
   comment: Comment;
@@ -39,17 +40,10 @@ export default function CommentItem({
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
-      backgroundColor: colors.background, // Using background instead of card for slight contrast if needed, or maybe add a 'surface' color
-      // In HoagieDetailScreen comments are on white bg (card).
-      // Let's use card color for comment item, or slightly different?
-      // In light mode: HoagieList is F8F9FA (background), Cards are #fff.
-      // In HoagieDetail: Main view is F8F9FA (background), Card is #fff. CommentsSection is #fff.
-      // So comments should probably be F8F9FA or similar to stand out on white?
-      // In the original file, comments were F8F9FA.
-      // So let's use 'background' here as it maps to F8F9FA in light mode.
+      backgroundColor: colors.background,
       borderRadius: 8,
       marginBottom: 8,
       padding: 12,

@@ -22,3 +22,5 @@ export const Colors = {
   },
 };
 
+export type ThemeColors = typeof Colors.light;
+

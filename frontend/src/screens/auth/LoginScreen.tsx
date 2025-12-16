@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -5,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +13,9 @@ import {
 import { LoginScreenProps } from '../../types/navigation.types';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/colors';
+import { getErrorMessage } from '../../utils/errors';
+import { toast } from 'sonner-native';
 
 export default function LoginScreen({ navigation }: LoginScreenProps) {
   const { login } = useAuth();
@@ -25,17 +28,20 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
     setIsLoading(true);
     try {
       await login({ email: email.toLowerCase().trim(), password });
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || 'Login failed. Please try again.';
-      Alert.alert('Login Error', message);
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      toast.error(
+        typeof message === 'string'
+          ? message
+          : 'Login failed. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +108,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     button: {
       alignItems: 'center',

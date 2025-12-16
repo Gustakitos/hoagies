@@ -2,8 +2,9 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Hoagie } from '../types/hoagie.types';
 import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/colors';
 
-interface HoagieCardProps {
+export interface HoagieCardProps {
   hoagie: Hoagie;
   onPress: () => void;
 }
@@ -14,13 +15,15 @@ export default function HoagieCard({ hoagie, onPress }: HoagieCardProps) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      {hoagie.pictureUrl && (
-        <Image
-          source={{ uri: hoagie.pictureUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-      )}
+      <Image
+        source={
+          hoagie.pictureUrl
+            ? { uri: hoagie.pictureUrl }
+            : require('../../assets/hoagie-placeholder.png')
+        }
+        style={styles.image}
+        resizeMode="cover"
+      />
       <View style={styles.content}>
         <Text style={styles.name}>{hoagie.name}</Text>
         <Text style={styles.creator}>by {hoagie.creator.name}</Text>
@@ -41,24 +44,21 @@ export default function HoagieCard({ hoagie, onPress }: HoagieCardProps) {
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     card: {
       backgroundColor: colors.card,
-      borderRadius: 12,
-      elevation: 3,
+      borderRadius: 16,
       marginHorizontal: 16,
-      marginVertical: 8,
+      marginBottom: 24,
       overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     commentCount: {
-      color: colors.tint,
-      fontSize: 14,
-      fontWeight: '600',
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '500',
     },
     content: {
       padding: 16,
@@ -66,32 +66,33 @@ const createStyles = (colors: any) =>
     creator: {
       color: colors.textSecondary,
       fontSize: 14,
-      marginBottom: 8,
+      marginTop: 4,
     },
     date: {
       color: colors.textSecondary,
-      fontSize: 12,
+      fontSize: 13,
     },
     footer: {
       alignItems: 'center',
       flexDirection: 'row',
       justifyContent: 'space-between',
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
     image: {
       backgroundColor: colors.background,
-      height: 200,
+      height: 240,
       width: '100%',
     },
     ingredients: {
-      color: colors.textSecondary,
-      fontSize: 14,
-      lineHeight: 20,
-      marginBottom: 12,
+      display: 'none',
     },
     name: {
       color: colors.text,
       fontSize: 20,
       fontWeight: '700',
-      marginBottom: 4,
+      marginBottom: 2,
     },
   });

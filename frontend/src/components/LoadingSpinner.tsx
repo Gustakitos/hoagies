@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/colors';
 
-interface LoadingSpinnerProps {
+export interface LoadingSpinnerProps {
   message?: string;
   size?: 'small' | 'large';
 }
@@ -22,7 +23,7 @@ export default function LoadingSpinner({
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       alignItems: 'center',

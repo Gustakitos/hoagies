@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,9 @@ import {
 import { RegisterScreenProps } from '../../types/navigation.types';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/colors';
+import { getErrorMessage } from '../../utils/errors';
+import { toast } from 'sonner-native';
 
 export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const { register } = useAuth();
@@ -63,7 +65,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const handleRegister = async () => {
     const error = validateForm();
     if (error) {
-      Alert.alert('Validation Error', error);
+      toast.error(error);
       return;
     }
 
@@ -74,14 +76,9 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
         email: email.toLowerCase().trim(),
         password,
       });
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        'Registration failed. Please try again.';
-      Alert.alert(
-        'Registration Error',
-        Array.isArray(message) ? message.join('\n') : message
-      );
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      toast.error(Array.isArray(message) ? message.join('\n') : message);
     } finally {
       setIsLoading(false);
     }
@@ -175,7 +172,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     button: {
       alignItems: 'center',

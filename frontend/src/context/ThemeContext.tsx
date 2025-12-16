@@ -6,14 +6,14 @@ import React, {
   ReactNode,
 } from 'react';
 import { useColorScheme } from 'react-native';
-import { Colors } from '../constants/colors';
+import { Colors, ThemeColors } from '../constants/colors';
 import { storage } from '../utils/storage';
 
 type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
-  colors: typeof Colors.light;
+  colors: ThemeColors;
   toggleTheme: () => void;
   isDark: boolean;
 }

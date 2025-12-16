@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../types/navigation.types';
 import { Hoagie, Comment } from '../../types/hoagie.types';
 import { hoagiesApi, commentsApi } from '../../api/endpoints';
@@ -18,6 +18,9 @@ import { useAuth } from '../../context/AuthContext';
 import CommentItem from '../../components/CommentItem';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/colors';
+import { getErrorMessage } from '../../utils/errors';
+import { toast } from 'sonner-native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HoagieDetail'>;
 
@@ -37,35 +40,45 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [loadingMoreComments, setLoadingMoreComments] = useState(false);
 
-  useEffect(() => {
-    loadHoagieDetails();
-  }, [hoagieId]);
+  const loadHoagieDetails = useCallback(
+    async (showLoading = true) => {
+      try {
+        if (showLoading) setLoading(true);
+        const [hoagieData, commentsData] = await Promise.all([
+          hoagiesApi.getById(hoagieId),
+          commentsApi.getByHoagieId(hoagieId, 1, 10),
+        ]);
+        setHoagie(hoagieData);
+        setComments(commentsData.data);
+        setHasMoreComments(commentsData.meta.hasNextPage);
+        setCommentsPage(1);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        toast.error(
+          typeof message === 'string'
+            ? message
+            : 'Failed to load hoagie details'
+        );
+        navigation.goBack();
+      } finally {
+        if (showLoading) setLoading(false);
+      }
+    },
+    [hoagieId, navigation]
+  );
 
-  const loadHoagieDetails = async () => {
-    try {
-      setLoading(true);
-      const [hoagieData, commentsData] = await Promise.all([
-        hoagiesApi.getById(hoagieId),
-        commentsApi.getByHoagieId(hoagieId, 1, 10),
-      ]);
-      setHoagie(hoagieData);
-      setComments(commentsData.data);
-      setHasMoreComments(commentsData.meta.hasNextPage);
-      setCommentsPage(1);
-    } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to load hoagie details'
-      );
-      navigation.goBack();
-    } finally {
-      setLoading(false);
-    }
-  };
+  useFocusEffect(
+    useCallback(() => {
+      loadHoagieDetails();
+    }, [loadHoagieDetails])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadHoagieDetails();
+    await Promise.all([
+      loadHoagieDetails(false),
+      new Promise((resolve) => setTimeout(resolve, 500)),
+    ]);
     setRefreshing(false);
   };
 
@@ -83,8 +96,9 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
       setComments([...comments, ...commentsData.data]);
       setHasMoreComments(commentsData.meta.hasNextPage);
       setCommentsPage(nextPage);
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to load more comments');
+    } catch (error: unknown) {
+      toast.error('Failed to load more comments');
+      console.log(error);
     } finally {
       setLoadingMoreComments(false);
     }
@@ -92,7 +106,7 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
 
   const handleSubmitComment = async () => {
     if (!commentText.trim()) {
-      Alert.alert('Error', 'Please enter a comment');
+      toast.error('Please enter a comment');
       return;
     }
 
@@ -102,37 +116,26 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
       const newComment = await commentsApi.create(hoagieId, data);
       setComments([newComment, ...comments]);
       setCommentText('');
-    } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to post comment'
+      toast.success('Comment posted!');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      toast.error(
+        typeof message === 'string' ? message : 'Failed to post comment'
       );
     } finally {
       setSubmittingComment(false);
     }
   };
 
-  const handleDeleteHoagie = () => {
-    Alert.alert(
-      'Delete Hoagie',
-      'Are you sure you want to delete this hoagie? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await hoagiesApi.delete(hoagieId);
-              Alert.alert('Success', 'Hoagie deleted successfully');
-              navigation.goBack();
-            } catch (error: any) {
-              Alert.alert('Error', 'Failed to delete hoagie');
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteHoagie = async () => {
+    try {
+      await hoagiesApi.delete(hoagieId);
+      toast.success('Hoagie deleted successfully');
+      navigation.goBack();
+    } catch (error: unknown) {
+      console.log(error);
+      toast.error('Failed to delete hoagie');
+    }
   };
 
   if (loading) {
@@ -154,11 +157,14 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       <ScrollView
+        alwaysBounceVertical={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.tint}
+            colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
           />
         }
         onScroll={({ nativeEvent }) => {
@@ -186,12 +192,22 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
                   <Text style={styles.editButtonText}>Edit</Text>
                 </TouchableOpacity>
                 {isOwner && (
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={handleDeleteHoagie}
-                  >
-                    <Text style={styles.deleteButtonText}>Delete</Text>
-                  </TouchableOpacity>
+                  <>
+                    <TouchableOpacity
+                      style={styles.collabButton}
+                      onPress={() =>
+                        navigation.navigate('AddCollaborator', { hoagieId })
+                      }
+                    >
+                      <Text style={styles.collabButtonText}>+ User</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={handleDeleteHoagie}
+                    >
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             )}
@@ -257,11 +273,9 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
           </View>
 
           {comments.map((comment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              currentUserId={user?.id}
-            />
+            <React.Fragment key={comment.id}>
+              <CommentItem comment={comment} currentUserId={user?.id} />
+            </React.Fragment>
           ))}
 
           {loadingMoreComments && (
@@ -283,7 +297,7 @@ export default function HoagieDetailScreen({ route, navigation }: Props) {
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     actions: {
       flexDirection: 'row',
@@ -318,6 +332,17 @@ const createStyles = (colors: any) =>
     container: {
       backgroundColor: colors.background,
       flex: 1,
+    },
+    collabButton: {
+      backgroundColor: '#34C759',
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    collabButtonText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '600',
     },
     deleteButton: {
       backgroundColor: colors.error,

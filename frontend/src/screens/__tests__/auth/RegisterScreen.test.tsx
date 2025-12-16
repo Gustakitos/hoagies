@@ -1,7 +1,6 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import RegisterScreen from '../../auth/RegisterScreen';
-import { authApi } from '../../../api/endpoints';
 
 jest.mock('../../../api/endpoints');
 jest.mock('../../../context/AuthContext', () => ({

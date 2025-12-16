@@ -1,9 +1,18 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import HoagieDetailScreen from '../../hoagies/HoagieDetailScreen';
 import { hoagiesApi, commentsApi } from '../../../api/endpoints';
 
 jest.mock('../../../api/endpoints');
+jest.mock('@react-navigation/native', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('React');
+  return {
+    ...jest.requireActual('@react-navigation/native'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useFocusEffect: (callback: () => void) => React.useEffect(callback, []),
+  };
+});
 jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 'user1' },

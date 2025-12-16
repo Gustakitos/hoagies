@@ -1,7 +1,6 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import CreateHoagieScreen from '../../hoagies/CreateHoagieScreen';
-import { hoagiesApi } from '../../../api/endpoints';
 
 jest.mock('../../../api/endpoints');
 
@@ -11,7 +10,7 @@ describe('CreateHoagieScreen', () => {
   };
 
   it('renders form', () => {
-    const { getByPlaceholderText, getByText } = render(
+    const { getByText } = render(
       <CreateHoagieScreen
         navigation={mockNavigation as any}
         route={{} as any}

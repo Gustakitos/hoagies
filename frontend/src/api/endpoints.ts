@@ -31,6 +31,15 @@ export const authApi = {
   },
 };
 
+export const usersApi = {
+  async search(email: string): Promise<User[]> {
+    const response = await apiClient.get<User[]>('/users/search', {
+      params: { email },
+    });
+    return response.data;
+  },
+};
+
 export const hoagiesApi = {
   async getAll(page: number = 1, limit: number = 10): Promise<PaginatedHoagies> {
     const response = await apiClient.get<PaginatedHoagies>('/hoagies', {

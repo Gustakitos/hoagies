@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -14,6 +13,9 @@ import { RootStackParamList } from '../../types/navigation.types';
 import { hoagiesApi } from '../../api/endpoints';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/colors';
+import { getErrorMessage } from '../../utils/errors';
+import { toast } from 'sonner-native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditHoagie'>;
 
@@ -26,11 +28,6 @@ export default function EditHoagieScreen({ route, navigation }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState('');
   const [ingredients, setIngredients] = useState<string[]>(['']);
-  const [collaborators, setCollaborators] = useState<
-    { id: string; name: string }[]
-  >([]);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviting, setInviting] = useState(false);
 
   const loadHoagie = React.useCallback(async () => {
     try {
@@ -38,9 +35,9 @@ export default function EditHoagieScreen({ route, navigation }: Props) {
       const hoagie = await hoagiesApi.getById(hoagieId);
       setName(hoagie.name);
       setIngredients(hoagie.ingredients.length > 0 ? hoagie.ingredients : ['']);
-      setCollaborators(hoagie.collaborators || []);
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to load hoagie');
+    } catch (error: unknown) {
+      toast.error('Failed to load hoagie');
+      console.log(error);
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -67,53 +64,15 @@ export default function EditHoagieScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleInvite = async () => {
-    if (!inviteEmail.trim()) {
-      Alert.alert('Error', 'Please enter an email address');
-      return;
-    }
-
-    try {
-      setInviting(true);
-      const updatedHoagie = await hoagiesApi.addCollaborator(
-        hoagieId,
-        inviteEmail.trim()
-      );
-      setCollaborators(updatedHoagie.collaborators || []);
-      setInviteEmail('');
-      Alert.alert('Success', 'Collaborator added successfully');
-    } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to add collaborator'
-      );
-    } finally {
-      setInviting(false);
-    }
-  };
-
-  const handleRemoveCollaborator = async (userId: string) => {
-    try {
-      await hoagiesApi.removeCollaborator(hoagieId, userId);
-      setCollaborators(collaborators.filter((c) => c.id !== userId));
-      Alert.alert('Success', 'Collaborator removed successfully');
-    } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to remove collaborator'
-      );
-    }
-  };
-
   const handleSubmit = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a hoagie name');
+      toast.error('Please enter a hoagie name');
       return;
     }
 
     const filteredIngredients = ingredients.filter((i) => i.trim());
     if (filteredIngredients.length === 0) {
-      Alert.alert('Error', 'Please add at least one ingredient');
+      toast.error('Please add at least one ingredient');
       return;
     }
 
@@ -123,12 +82,12 @@ export default function EditHoagieScreen({ route, navigation }: Props) {
         name: name.trim(),
         ingredients: filteredIngredients,
       });
-      Alert.alert('Success', 'Hoagie updated successfully');
+      toast.success('Hoagie updated successfully');
       navigation.goBack();
-    } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to update hoagie'
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      toast.error(
+        typeof message === 'string' ? message : 'Failed to update hoagie'
       );
     } finally {
       setSubmitting(false);
@@ -190,47 +149,6 @@ export default function EditHoagieScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Collaborators</Text>
-            {collaborators.map((collaborator) => (
-              <View key={collaborator.id} style={styles.listItemContainer}>
-                <Text
-                  style={[styles.input, styles.listInput, styles.readOnlyInput]}
-                >
-                  {collaborator.name}
-                </Text>
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => handleRemoveCollaborator(collaborator.id)}
-                >
-                  <Text style={styles.removeButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-            <View style={styles.listItemContainer}>
-              <TextInput
-                style={[styles.input, styles.listInput]}
-                placeholder="Enter email to invite"
-                placeholderTextColor={colors.textSecondary}
-                value={inviteEmail}
-                onChangeText={setInviteEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-              <TouchableOpacity
-                style={[styles.addButton, styles.inviteButton]}
-                onPress={handleInvite}
-                disabled={inviting}
-              >
-                {inviting ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.addButtonText}>Invite</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
           <TouchableOpacity
             style={[
               styles.submitButton,
@@ -251,11 +169,11 @@ export default function EditHoagieScreen({ route, navigation }: Props) {
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     addButton: {
       alignItems: 'center',
-      backgroundColor: '#4A90E2', // Keep consistent or add to colors constant? Let's use as is for now, or add 'secondary'/'info' color.
+      backgroundColor: '#4A90E2',
       borderRadius: 8,
       padding: 12,
     },
@@ -283,10 +201,6 @@ const createStyles = (colors: any) =>
     inputGroup: {
       marginBottom: 24,
     },
-    inviteButton: {
-      justifyContent: 'center',
-      width: 80,
-    },
     label: {
       color: colors.text,
       fontSize: 16,
@@ -301,11 +215,6 @@ const createStyles = (colors: any) =>
       flexDirection: 'row',
       gap: 8,
       marginBottom: 12,
-    },
-    readOnlyInput: {
-      backgroundColor: colors.background,
-      color: colors.textSecondary,
-      paddingVertical: 12,
     },
     removeButton: {
       alignItems: 'center',

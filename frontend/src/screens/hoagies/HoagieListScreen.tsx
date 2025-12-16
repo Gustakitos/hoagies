@@ -1,26 +1,32 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
   RefreshControl,
-  Alert,
+  TextInput,
 } from 'react-native';
+import Animated, {
+  FadeInDown,
+  LinearTransition,
+} from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 import { HoagieListScreenProps } from '../../types/navigation.types';
 import { Hoagie } from '../../types/hoagie.types';
 import { hoagiesApi } from '../../api/endpoints';
 import HoagieCard from '../../components/HoagieCard';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { useAuth } from '../../context/AuthContext';
+import { ThemeColors } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
+import { getErrorMessage } from '../../utils/errors';
+import { Search as SearchIcon } from 'lucide-react-native';
+import { toast } from 'sonner-native';
 
 export default function HoagieListScreen({
   navigation,
 }: HoagieListScreenProps) {
-  const { logout, user } = useAuth();
-  const { colors, toggleTheme, theme } = useTheme();
+  const { colors } = useTheme();
   const [hoagies, setHoagies] = useState<Hoagie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -28,83 +34,76 @@ export default function HoagieListScreen({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={styles.headerButtons}>
-          <TouchableOpacity onPress={toggleTheme} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>
-              {theme === 'light' ? '🌙' : '☀️'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [navigation, theme, colors]);
+  const fetchHoagies = useCallback(
+    async (pageNum: number, append: boolean = false) => {
+      try {
+        const response = await hoagiesApi.getAll(pageNum, 10);
 
-  useEffect(() => {
-    fetchHoagies(1);
-  }, []);
+        if (append) {
+          setHoagies((prev) => [...prev, ...response.data]);
+        } else {
+          setHoagies(response.data);
+        }
 
-  const fetchHoagies = async (pageNum: number, append: boolean = false) => {
-    try {
-      const response = await hoagiesApi.getAll(pageNum, 10);
-
-      if (append) {
-        setHoagies((prev) => [...prev, ...response.data]);
-      } else {
-        setHoagies(response.data);
+        setTotal(response.meta.total);
+        setHasMore(response.meta.hasNextPage);
+        setPage(pageNum);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        toast.error(
+          typeof message === 'string' ? message : 'Failed to load hoagies'
+        );
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
+    },
+    []
+  );
 
-      setTotal(response.meta.total);
-      setHasMore(response.meta.hasNextPage);
-      setPage(pageNum);
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to load hoagies';
-      Alert.alert('Error', message);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-      setIsLoadingMore(false);
-    }
-  };
+  useFocusEffect(
+    useCallback(() => {
+      fetchHoagies(1);
+    }, [fetchHoagies])
+  );
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    fetchHoagies(1);
-  }, []);
+    await Promise.all([
+      fetchHoagies(1),
+      new Promise((resolve) => setTimeout(resolve, 500)),
+    ]);
+    setIsRefreshing(false);
+  }, [fetchHoagies]);
 
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore) {
       setIsLoadingMore(true);
       fetchHoagies(page + 1, true);
     }
-  }, [isLoadingMore, hasMore, page]);
+  }, [isLoadingMore, hasMore, page, fetchHoagies]);
 
-  const handleLogout = async () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-        },
-      },
-    ]);
-  };
+  const filteredHoagies = useMemo(() => {
+    if (!searchQuery) return hoagies;
+    const lowerQuery = searchQuery.toLowerCase();
+    return hoagies.filter((h) => h.name.toLowerCase().includes(lowerQuery));
+  }, [hoagies, searchQuery]);
 
   const renderFooter = () => {
-    if (!isLoadingMore) return null;
     return (
-      <View style={styles.footerLoader}>
-        <Text style={styles.loadingMore}>Loading more...</Text>
+      <View style={styles.footerContainer}>
+        {isLoadingMore && (
+          <View style={styles.footerLoader}>
+            <Text style={styles.loadingMore}>Loading more...</Text>
+          </View>
+        )}
+        <Text style={styles.totalCount}>
+          Showing {filteredHoagies.length} of {total} hoagies
+        </Text>
       </View>
     );
   };
@@ -127,26 +126,38 @@ export default function HoagieListScreen({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hello, {user?.name}! 👋</Text>
-          <Text style={styles.totalCount}>{total} hoagies available</Text>
+        <View style={styles.searchContainer}>
+          <SearchIcon
+            size={20}
+            color={colors.textSecondary}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search hoagies"
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
         </View>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => navigation.navigate('CreateHoagie')}
-        >
-          <Text style={styles.createButtonText}>+ New</Text>
-        </TouchableOpacity>
       </View>
 
       <FlatList
-        data={hoagies}
+        alwaysBounceVertical={true}
+        data={filteredHoagies}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <HoagieCard
-            hoagie={item}
-            onPress={() => navigation.navigate('HoagieDetail', { id: item.id })}
-          />
+        renderItem={({ item, index }) => (
+          <Animated.View
+            entering={FadeInDown.delay(index * 100).springify()}
+            layout={LinearTransition.springify()}
+          >
+            <HoagieCard
+              hoagie={item}
+              onPress={() =>
+                navigation.navigate('HoagieDetail', { id: item.id })
+              }
+            />
+          </Animated.View>
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -155,6 +166,7 @@ export default function HoagieListScreen({
             onRefresh={handleRefresh}
             tintColor={colors.tint}
             colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
           />
         }
         onEndReached={handleLoadMore}
@@ -166,22 +178,36 @@ export default function HoagieListScreen({
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       backgroundColor: colors.background,
       flex: 1,
     },
-    createButton: {
-      backgroundColor: colors.tint,
-      borderRadius: 8,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
+    header: {
+      paddingVertical: 16,
+      backgroundColor: colors.background,
     },
-    createButtonText: {
-      color: '#fff',
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      marginHorizontal: 16,
+      marginBottom: 0,
+      paddingHorizontal: 12,
+      height: 48,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    searchIcon: {
+      marginRight: 8,
+    },
+    searchInput: {
+      flex: 1,
+      height: '100%',
+      color: colors.text,
       fontSize: 16,
-      fontWeight: '600',
     },
     emptyContainer: {
       alignItems: 'center',
@@ -203,36 +229,14 @@ const createStyles = (colors: any) =>
       fontWeight: '600',
       marginBottom: 8,
     },
+    footerContainer: {
+      paddingBottom: 40,
+      paddingTop: 10,
+      alignItems: 'center',
+    },
     footerLoader: {
       alignItems: 'center',
-      paddingVertical: 20,
-    },
-    greeting: {
-      color: colors.text,
-      fontSize: 20,
-      fontWeight: '700',
-    },
-    header: {
-      alignItems: 'center',
-      backgroundColor: colors.card,
-      borderBottomColor: colors.border,
-      borderBottomWidth: 1,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      padding: 16,
-    },
-    headerButtons: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    headerButton: {
-      marginLeft: 16,
-      padding: 4,
-    },
-    headerButtonText: {
-      color: '#fff',
-      fontSize: 16,
-      fontWeight: '600',
+      paddingVertical: 10,
     },
     listContent: {
       flexGrow: 1,

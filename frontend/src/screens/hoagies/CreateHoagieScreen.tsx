@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,9 @@ import {
 import { CreateHoagieScreenProps } from '../../types/navigation.types';
 import { hoagiesApi } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/colors';
+import { getErrorMessage } from '../../utils/errors';
+import { toast } from 'sonner-native';
 
 export default function CreateHoagieScreen({
   navigation,
@@ -70,7 +72,7 @@ export default function CreateHoagieScreen({
   const handleCreate = async () => {
     const error = validateForm();
     if (error) {
-      Alert.alert('Validation Error', error);
+      toast.error(error);
       return;
     }
 
@@ -87,19 +89,11 @@ export default function CreateHoagieScreen({
         pictureUrl: pictureUrl.trim() || undefined,
       });
 
-      Alert.alert('Success', 'Hoagie created successfully!', [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
-        },
-      ]);
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || 'Failed to create hoagie';
-      Alert.alert(
-        'Error',
-        Array.isArray(message) ? message.join('\n') : message
-      );
+      toast.success('Hoagie created successfully!');
+      navigation.goBack();
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      toast.error(Array.isArray(message) ? message.join('\n') : message);
     } finally {
       setIsLoading(false);
     }
@@ -171,7 +165,7 @@ export default function CreateHoagieScreen({
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     button: {
       alignItems: 'center',
