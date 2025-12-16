@@ -5,16 +5,17 @@
 ```mermaid
 erDiagram
     User ||--o{ Hoagie : "creates"
+    User }o--o{ Hoagie : "collaborates"
     User ||--o{ Comment : "writes"
-    User ||--o{ Collaborator : "is"
     Hoagie ||--o{ Comment : "has"
-    Hoagie ||--o{ Collaborator : "has"
 
     User {
         ObjectId _id
         string name
         string email
         string password
+        Date createdAt
+        Date updatedAt
     }
 
     Hoagie {
@@ -23,14 +24,9 @@ erDiagram
         string[] ingredients
         string pictureUrl
         ObjectId creator
-        Collaborator[] collaborators
+        ObjectId[] collaborators "Ref: User"
         Date createdAt
         Date updatedAt
-    }
-
-    Collaborator {
-        ObjectId user
-        string role
     }
 
     Comment {
@@ -39,6 +35,7 @@ erDiagram
         ObjectId user
         ObjectId hoagie
         Date createdAt
+        Date updatedAt
     }
 ```
 
@@ -46,8 +43,8 @@ erDiagram
 
 ```mermaid
 graph TD
-    Client[Mobile App (React Native)]
-    API[Backend API (NestJS)]
+    Client["Mobile App (React Native)"]
+    API["Backend API (NestJS)"]
     DB[(MongoDB)]
 
     Client -->|HTTP / JSON| API

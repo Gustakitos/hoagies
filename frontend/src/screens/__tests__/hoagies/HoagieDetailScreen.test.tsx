@@ -6,7 +6,7 @@ import { hoagiesApi, commentsApi } from '../../../api/endpoints';
 jest.mock('../../../api/endpoints');
 jest.mock('@react-navigation/native', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const React = require('React');
+  const React = require('react');
   return {
     ...jest.requireActual('@react-navigation/native'),
     // eslint-disable-next-line react-hooks/exhaustive-deps

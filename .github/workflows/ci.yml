@@ -1,4 +1,4 @@
-name: CI
+name: CI - PR
 
 on:
   - pull_request
@@ -18,6 +18,9 @@ jobs:
         env:
           MONGO_INITDB_ROOT_USERNAME: root
           MONGO_INITDB_ROOT_PASSWORD: examplepassword
+
+    env:
+      MONGODB_URL: mongodb://root:examplepassword@localhost:27017/test?authSource=admin
 
     steps:
       - uses: actions/checkout@v3
@@ -45,6 +48,6 @@ jobs:
           node-version: "22.x"
           cache: "yarn"
           cache-dependency-path: frontend/yarn.lock
-      - run: yarn ci
+      - run: yarn install --frozen-lockfile
       - run: yarn lint
       - run: yarn test
