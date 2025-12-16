@@ -46,7 +46,7 @@ erDiagram
 
 ```mermaid
 graph TD
-    Client[Mobile App (React Native)]
+    Client["Mobile App (React Native)"]
     API[Backend API (NestJS)]
     DB[(MongoDB)]
 
